@@ -1,9 +1,13 @@
 package com.example.isa.speech;
 
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
@@ -18,7 +22,6 @@ import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity {
     public Layout layout;
-    private static final int CHECK_TTS_CODE = 1234;
     //文字轉語音 tts
     public TextToSpeech textToSpeech;
     //    need RECORD_AUDIO permission
@@ -30,33 +33,26 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
 
 
-        boolean search = false;
+        boolean searchVresion = false;
         String str = "";
         PackageManager packageManager = getPackageManager();
         List<PackageInfo> list = packageManager.getInstalledPackages(0);
         for (int i = 0; i < list.size(); i++) {
 //            Log.e("tag", list.get(i).packageName);
             if (list.get(i).packageName.equals("com.google.android.tts")) {
-                search = true;
+                searchVresion = true;
                 str = list.get(i).versionName;
                 break;
             }
         }
-        if (!search) {
-//            Intent installer = new Intent(Intent.ACTION_VIEW);
-//            installer.setData(Uri.parse("market://details?id=com.google.android.tts"));
-//            startActivity(installer);
+        if (!searchVresion) {
+
             Toast.makeText(MainActivity.this, "don't have", Toast.LENGTH_SHORT).show();
         } else {
             Toast.makeText(MainActivity.this, "have version" + str, Toast.LENGTH_SHORT).show();
         }
         layout = new Layout(this);
         setContentView(layout);
-
-//        Intent intent = new Intent();
-//        intent.setAction(TextToSpeech.Engine.ACTION_CHECK_TTS_DATA);
-//        startActivityForResult(intent, CHECK_TTS_CODE);
-
 
         layout.button.setOnClickListener(onClickListener());
         layout.button2.setOnClickListener(onClickListener2());
@@ -67,35 +63,47 @@ public class MainActivity extends AppCompatActivity {
         textToSpeech = new TextToSpeech(this, new TextToSpeech.OnInitListener() {
             @Override
             public void onInit(int status) {
-
                 if (status != TextToSpeech.ERROR) {
 //                    設定語言
-                    textToSpeech.setLanguage(Locale.CHINESE);
+//                    textToSpeech.setLanguage(Locale.CHINESE);
                     if (textToSpeech.isLanguageAvailable(Locale.CHINESE) == 0) {
                         Toast.makeText(MainActivity.this, "can speak chinese", Toast.LENGTH_SHORT).show();
 
                     } else {
+                        AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+                        builder.setTitle("Message");
+                        builder.setMessage("請下載？？？？？？\n或更改設定");
+                        builder.setCancelable(false);
+                        builder.setNeutralButton("setting", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                startActivityForResult(new Intent(Settings.ACTION_SETTINGS), 0);
+                            }
+                        });
+                        builder.setNegativeButton("cancel", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                finish();
+//
+                            }
+                        });
+                        builder.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                Intent installer = new Intent(Intent.ACTION_VIEW);
+                                installer.setData(Uri.parse("market://details?id=com.google.android.tts"));
+                                startActivity(installer);
+                            }
+                        });
+                        AlertDialog dialog = builder.create();
+                        dialog.show();
                         Toast.makeText(MainActivity.this, "can't  speak chinese", Toast.LENGTH_SHORT).show();
-
                     }
 
                 }
             }
         });
     }
-//
-//    @Override
-//    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-//        super.onActivityResult(requestCode, resultCode, data);
-//        if (requestCode == CHECK_TTS_CODE && resultCode == TextToSpeech.Engine.CHECK_VOICE_DATA_PASS) {
-//            Toast.makeText(MainActivity.this, "have TTS", Toast.LENGTH_SHORT).show();
-//
-//        } else {
-////            Intent installer = new Intent(Intent.ACTION_VIEW);
-////            installer.setData(Uri.parse("market://details?id=com.google.android.tts"));
-////            startActivity(installer);
-//        }
-//    }
 
     public View.OnClickListener onClickListener() {
         return new View.OnClickListener() {
@@ -116,7 +124,6 @@ public class MainActivity extends AppCompatActivity {
                 String str = layout.editText.getText().toString();
 //                語音輸出
                 textToSpeech.speak(str, TextToSpeech.QUEUE_FLUSH, null);
-
             }
         };
     }
@@ -154,16 +161,33 @@ public class MainActivity extends AppCompatActivity {
             public void onError(int error) {
                 Toast.makeText(MainActivity.this, "error" + error, Toast.LENGTH_SHORT).show();
 
+                if (error == 1) {
+                    Toast.makeText(MainActivity.this, "網路操作逾時", Toast.LENGTH_SHORT).show();
+                }//網路操作逾時
+                else if (error == 2) {
+                    Toast.makeText(MainActivity.this, "網路錯誤", Toast.LENGTH_SHORT).show();
+                }//網路錯誤
+                else if (error == 3) {
+                    Toast.makeText(MainActivity.this, "錄音錯誤", Toast.LENGTH_SHORT).show();
+                }//錄音錯誤
+                else if (error == 4) {
+                    Toast.makeText(MainActivity.this, "伺服器錯誤", Toast.LENGTH_SHORT).show();
+                }//伺服器錯誤
+                else if (error == 5) {
+                    Toast.makeText(MainActivity.this, "客戶端錯誤", Toast.LENGTH_SHORT).show();
+                }//客戶端錯誤
 //                error=6找不到match 重新啟動
 //                error=7 timeout
-                if (error == 6 && error == 7) {
+                else if (error == 6 && error == 7) {
                     recognizer.stopListening();
                 }
 //                server忙碌
-                if (error == 8) {
+                else if (error == 8) {
                     recognizer.stopListening();
                     recognizer.cancel();
-                }
+                } else if (error == 9) {
+                }//權限不足
+
             }
 
             @Override
@@ -182,7 +206,98 @@ public class MainActivity extends AppCompatActivity {
             public void onEvent(int eventType, Bundle params) {
 
             }
-        };
+        }
+
+                ;
+    }
+
+    @Override
+    protected void onRestart() {
+        super.onRestart();
+
+        boolean searchVresion = false;
+        String str = "";
+        PackageManager packageManager = getPackageManager();
+        List<PackageInfo> list = packageManager.getInstalledPackages(0);
+        for (int i = 0; i < list.size(); i++) {
+//            Log.e("tag", list.get(i).packageName);
+            if (list.get(i).packageName.equals("com.google.android.tts")) {
+                searchVresion = true;
+                str = list.get(i).versionName;
+                break;
+            }
+        }
+        if (!searchVresion) {
+
+            Toast.makeText(MainActivity.this, "don't have", Toast.LENGTH_SHORT).show();
+        } else {
+            Toast.makeText(MainActivity.this, "have version" + str, Toast.LENGTH_SHORT).show();
+        }
+        layout = new Layout(this);
+        setContentView(layout);
+
+        layout.button.setOnClickListener(onClickListener());
+        layout.button2.setOnClickListener(onClickListener2());
+
+        recognizer = SpeechRecognizer.createSpeechRecognizer(this);
+        recognizer.setRecognitionListener(recognitionListener());
+
+        textToSpeech = new TextToSpeech(this, new TextToSpeech.OnInitListener() {
+            @Override
+            public void onInit(int status) {
+
+                if (status != TextToSpeech.ERROR) {
+//                    設定語言
+                    textToSpeech.setLanguage(Locale.CHINESE);
+                    if (textToSpeech.isLanguageAvailable(Locale.CHINESE) == 0) {
+                        Toast.makeText(MainActivity.this, "can speak chinese", Toast.LENGTH_SHORT).show();
+
+                    } else {
+                        AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+                        builder.setTitle("Message");
+                        builder.setMessage("請下載？？？？？？\n或更改設定");
+                        builder.setCancelable(false);
+                        builder.setNeutralButton("setting", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                startActivityForResult(new Intent(Settings.ACTION_SETTINGS), 0);
+                            }
+                        });
+                        builder.setNegativeButton("cancel", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                finish();
+                            }
+                        });
+                        builder.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                Intent installer = new Intent(Intent.ACTION_VIEW);
+                                installer.setData(Uri.parse("market://details?id=com.google.android.tts"));
+                                startActivity(installer);
+                            }
+                        });
+                        AlertDialog dialog = builder.create();
+                        dialog.show();
+                        Toast.makeText(MainActivity.this, "can't  speak chinese", Toast.LENGTH_SHORT).show();
+
+                    }
+
+                }
+            }
+        });
+    }
+
+    @Override
+    protected void onStop() {
+        if (textToSpeech != null) {
+            //停止speak
+            textToSpeech.stop();
+            //釋放資源
+            textToSpeech.shutdown();
+        }
+        super.onStop();
+
     }
 
     @Override
@@ -195,4 +310,7 @@ public class MainActivity extends AppCompatActivity {
         }
         super.onDestroy();
     }
+
+    @Override
+    public void onBackPressed() {}
 }
